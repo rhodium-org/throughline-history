@@ -3,9 +3,11 @@ type: requirement
 status: proposed
 title: tl-history reads a checkout
 text: tl-history prints a graph's events, a summary, or a comparison of named git
-  refs, as text or JSON. It walks the line the named branch took, so a branch merged
-  by a merge commit arrives as that merge. Outside a git repository it says so in
-  a line and exits 2.
+  refs, as text or JSON. It reads every commit reachable from the ref that changed
+  the graph, merges left out, each against its own parent, so a change is the commit's
+  that made it, by its author and at its time, and branches interleaved in time never
+  make a file seem to come and go. Outside a git repository it says so in a line
+  and exits 2.
 normative: true
 links:
 - target: INT-0001

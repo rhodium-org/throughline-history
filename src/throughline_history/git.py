@@ -51,10 +51,12 @@ def steps(top: Path, root: str, ref: str = "HEAD"):
     """Each commit reachable from ``ref`` that touched the graph at ``root``,
     oldest first, with the text of every item file it changed."""
     spec = [root] if root else []
-    # --first-parent walks the line main itself took and diffs a merge against its
-    # first parent, so a branch merged by a merge commit arrives as that one commit,
-    # and the branch's own commits, which main never stood at, are not replayed.
-    log = _git(top, "log", "--reverse", "--first-parent", "--diff-merges=first-parent", ref,
+    # Every commit reachable from ref that changed the graph, merges left out, each
+    # carrying only what it changed against its own parent: a change is attributed to
+    # the person who made it, when they made it, not to whoever merged it, and a
+    # branch interleaved in time with main never makes a file seem to come and go.
+    # A merge's own diff would repeat its branch's changes, so it is not read.
+    log = _git(top, "log", "--reverse", "--date-order", "--no-merges", ref,
                f"--format={_REC}%H{_SEP}%an{_SEP}%aI{_SEP}%s", "--name-only", "--", *spec)
     for record in log.split(_REC)[1:]:
         head, _, names = record.partition("\n")
