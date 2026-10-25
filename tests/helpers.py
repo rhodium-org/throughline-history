@@ -4,6 +4,29 @@ import yaml
 from throughline_history import Commit
 
 
+def fingerprint(text, rules=None):
+    """The fingerprint tl ratify records for the item text, under the rules of a
+    configuration given as TOML text (the default rules when none)."""
+    import importlib
+    import tomllib
+    from throughline.model import Item
+    from throughline.schema import Schema
+    sig = importlib.import_module("throughline.signatures")
+    schema = Schema.from_config(tomllib.loads(rules) if rules else None)
+    return sig.fingerprint(Item.from_dict(yaml.safe_load(text)), schema)
+
+
+def signed(uid, signers, rules=None, **kw):
+    """The item as tl ratify leaves it: each signer's entry carries the fingerprint
+    of the content as it stands. A signer is (name, id, role, at); role and at may be None."""
+    status = kw.pop("status", "ratified")
+    bare = item(uid, status=status, **kw)
+    fp = fingerprint(bare, rules)
+    entries = [{k: v for k, v in {"by": n, "id": i, "role": r, "at": a, "fingerprint": fp}.items() if v is not None}
+               for n, i, r, a in signers]
+    return item(uid, status=status, signatures=entries, **kw)
+
+
 def item(uid, *, type="requirement", status="proposed", title=None, text="It does a thing.", origin="ai",
          links=(("INT-0001", "derives_from"),), signatures=(), legacy=None, withdrawals=(), attrs=None):
     d = {"uid": uid, "type": type, "status": status, "title": title or f"Item {uid}", "text": text,
@@ -39,4 +62,15 @@ ratified = "ratified"
 invalidated = "rejected"
 suspect = "suspect"
 tombstone = "deleted"
+"""
+
+
+ROLES = TOML + """
+[ratify.roles]
+senior = ["github:bob"]
+junior = ["github:ada"]
+
+[ratify.requires.requirement]
+roles = ["senior"]
+signatures = 1
 """

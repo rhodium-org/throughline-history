@@ -3,7 +3,7 @@ import subprocess
 import pytest
 
 from throughline_history import EVENT_KINDS, SCHEMA_VERSION, derive, summarise
-from helpers import commit, item
+from helpers import ROLES, TOML, commit, item, signed
 
 ADA = {"by": "Ada Lovelace", "id": "github:ada", "fingerprint": "sha256:aaa"}
 
@@ -146,3 +146,58 @@ def test_every_output_names_its_schema_version():
     h = derive([(commit(1), {"REQ-0001.yml": item("REQ-0001")})])
     outs = [h.to_json(), summarise(h), compare({"REQ-0001.yml": item("REQ-0001")}, {})]
     assert [o["schemaVersion"] for o in outs] == [SCHEMA_VERSION] * 3
+
+
+
+def test_an_item_meets_its_kind_only_when_its_signatures_do():
+    """REQ-0013: under the graph's rules at each commit, an item is met when its
+    current signatures satisfy what its kind requires (a junior's alone does not
+    where a senior's is required), and unmet when they stop (TEST-0014).
+    REQ-0014: an amendment that moves what a signature covered makes that
+    signature stale, one event each (TEST-0015)."""
+    cfg = "idd/throughline.toml"
+    req = "idd/requirements/REQ-0001.yml"
+    junior = ("Ada", "github:ada", "junior", "2026-10-02T10:00:00Z")
+    senior = ("Bob", "github:bob", "senior", "2026-10-03T10:00:00Z")
+    h = derive([
+        (commit(1), {cfg: ROLES, req: item("REQ-0001")}),
+        (commit(2), {req: signed("REQ-0001", [junior], ROLES, status="proposed")}),
+        (commit(3), {req: signed("REQ-0001", [junior, senior], ROLES)}),
+        (commit(4), {req: item("REQ-0001", status="ratified", text="It does two things.",
+                               signatures=[e for e in __import__("yaml").safe_load(signed("REQ-0001", [junior, senior], ROLES))["ratifications"]])}),
+    ], root="idd")
+    k = [(e["kind"], e.get("by") or e.get("role")) for e in h.events if e["kind"] != "rules"]
+    assert k == [("created", None), ("signed", "Ada"), ("status", None), ("signed", "Bob"), ("met", None),
+                 ("amended", None), ("stale", "Ada"), ("stale", "Bob"), ("unmet", None)]
+    met = next(e for e in h.events if e["kind"] == "met")
+    assert {x["role"] for x in met["held"]} >= {"senior"}
+    unmet = next(e for e in h.events if e["kind"] == "unmet")
+    assert unmet["missing"] and unmet["commit"]["sha"] == commit(4).sha
+    assert [c["met"] for c in h.commits] == [0, 0, 1, 0]
+
+
+def test_a_change_of_rules_is_an_event_and_judges_again():
+    """REQ-0015: a commit that changes the roles or what a kind requires is a
+    rules event naming them, and every item is judged again under the new rules,
+    its met or unmet events caused by them (TEST-0016)."""
+    cfg = "idd/throughline.toml"
+    req = "idd/requirements/REQ-0001.yml"
+    h = derive([
+        (commit(1), {cfg: TOML, req: signed("REQ-0001", [("Ada", "github:ada", None, None)], TOML)}),
+        (commit(2), {cfg: ROLES}),
+    ], root="idd")
+    assert [e["kind"] for e in h.events] == ["created", "signed", "met", "rules", "unmet"]
+    rules = h.events[3]
+    assert rules["requires"] == {"requirement": {"roles": ["senior"], "signatures": 1}} and "senior" in rules["roles"]
+    assert h.events[4]["cause"] == "rules"
+
+
+def test_the_summary_carries_standing_and_roles():
+    """REQ-0008: each item's standing after the last commit, and the roles each
+    person signed in (TEST-0008)."""
+    cfg, req = "throughline.toml", "REQ-0001.yml"
+    h = derive([(commit(1), {cfg: ROLES, req: signed("REQ-0001", [("Ada", "github:ada", "junior", None)], ROLES)})])
+    s = summarise(h)
+    assert s["items"][0]["standing"] == {"met": False, "missing": ["a signature in the role 'senior'"],
+                                         "held": [{"by": "Ada", "role": "junior"}]}
+    assert next(p for p in s["people"] if p.get("id") == "github:ada")["roles"] == ["junior"]

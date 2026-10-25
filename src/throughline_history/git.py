@@ -8,7 +8,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from .derive import Commit, item_uid, under
+from .derive import Commit, config_path, item_uid, under
 
 _SEP = "\x1f"
 _REC = "\x1e"
@@ -64,7 +64,8 @@ def steps(top: Path, root: str, ref: str = "HEAD"):
         changed = {}
         for name in names.splitlines():
             name = name.strip()
-            if name and under(root, name) and item_uid(name):
+            # Items, and the configuration whose rules they are judged by.
+            if name and under(root, name) and (item_uid(name) or name == config_path(root)):
                 changed[name] = _show(top, sha, name)
         yield Commit(sha=sha, author=author, at=at, message=subject), changed
 

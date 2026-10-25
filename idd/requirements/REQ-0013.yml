@@ -1,0 +1,17 @@
+uid: REQ-0013
+type: requirement
+status: proposed
+title: An item is judged by the rules in force at each commit
+text: 'The graph''s throughline.toml among a commit''s changes sets the rules from
+  that commit on. After each change to an item, its standing is taken through throughline''s
+  own standing under those rules: a met event when its current signatures come to
+  meet what its kind requires, naming the signatures held, and an unmet event when
+  they stop, naming what is missing. A graph declaring no rules needs one signature
+  of anyone, as throughline does.'
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

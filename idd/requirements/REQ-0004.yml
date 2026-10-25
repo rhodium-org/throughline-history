@@ -3,8 +3,8 @@ type: requirement
 status: proposed
 title: Signing again and withdrawing are their own events
 text: A signature by someone who had already signed the item is marked as signing
-  again; a recorded withdrawal is a withdrawn event naming who withdrew, whose signature,
-  the reason and when.
+  again, and carries what it supersedes where the record says; a recorded withdrawal
+  is a withdrawn event naming who withdrew, whose signature, the reason and when.
 normative: true
 links:
 - target: INT-0001

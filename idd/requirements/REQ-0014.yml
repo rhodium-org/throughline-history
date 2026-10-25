@@ -1,0 +1,15 @@
+uid: REQ-0014
+type: requirement
+status: proposed
+title: A signature that stops covering its item is stale
+text: When an amendment moves what a signature covered, so that throughline's is_stale
+  holds for it where it did not before, the history records one stale event for that
+  signature, naming who signed and in what role. A signature replaced in the same
+  commit by a new one is not stale.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

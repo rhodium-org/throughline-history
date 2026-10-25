@@ -1,0 +1,13 @@
+uid: TEST-0015
+type: test
+status: proposed
+title: An amendment makes each covering signature stale
+text: 'tests/test_derive.py, test_an_item_meets_its_kind_only_when_its_signatures_do:
+  amending the text both signatures covered gives one stale event for each signer,
+  in the commit that amended it.'
+normative: false
+links:
+- target: REQ-0014
+  type: verifies
+attrs:
+  origin: ai

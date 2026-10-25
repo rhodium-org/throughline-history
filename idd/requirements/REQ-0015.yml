@@ -1,0 +1,14 @@
+uid: REQ-0015
+type: requirement
+status: proposed
+title: A change of rules is an event, and every item is judged again
+text: A commit that changes the roles or what any kind requires is a rules event
+  naming them as they now stand; every live item is judged again under the new rules,
+  and the met or unmet events that follow name the rules as their cause.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: should
+  origin: ai

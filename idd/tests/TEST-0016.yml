@@ -1,0 +1,14 @@
+uid: TEST-0016
+type: test
+status: proposed
+title: A rules change judges signed items again
+text: 'tests/test_derive.py, test_a_change_of_rules_is_an_event_and_judges_again:
+  an item met by one signature under the default rules is unmet, caused by the rules,
+  when a commit declares that requirements need a senior; the rules event names the
+  roles and requirements.'
+normative: false
+links:
+- target: REQ-0015
+  type: verifies
+attrs:
+  origin: ai

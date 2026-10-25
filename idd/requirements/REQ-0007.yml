@@ -3,8 +3,9 @@ type: requirement
 status: proposed
 title: Each commit carries a tally
 text: After each commit, the history records how many items there are, how many in
-  each status and how many carry a signature, beside the commit's sha, author, time
-  and first line.
+  each status, how many carry a signature and how many meet what their kind requires
+  under the rules then in force, beside the commit's sha, author, time and first
+  line.
 normative: true
 links:
 - target: INT-0001

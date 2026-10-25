@@ -6,7 +6,8 @@ the graph's main version finally holds. Pure: the caller supplies the files of e
 version as {path: text}; nothing here reads git or the network.
 
 A decision is read from the files, never from who someone is: ``signed`` where an
-attempt added a signature, ``rejected`` where it moved the item to the graph's
+attempt added a signature (with the role it was given in, and whether the item's
+signatures then meet what the graph's rules require of its kind), ``rejected`` where it moved the item to the graph's
 invalidated status (``[status.roles] invalidated`` in throughline.toml), ``other``
 where it moved the status anywhere else, and ``undecided`` where it did neither.
 """
@@ -15,7 +16,7 @@ from __future__ import annotations
 import tomllib
 from typing import Mapping
 
-from .derive import SCHEMA_VERSION, _signature_key, _view, item_uid, under
+from .derive import SCHEMA_VERSION, _schema, _signature_key, _standing, _view, config_path, item_uid, under
 
 Files = Mapping[str, str]
 
@@ -44,12 +45,16 @@ def _items(files: Files, root: str) -> dict[str, dict]:
     return out
 
 
-def _decision(base: dict, now: dict | None, invalidated: str) -> dict:
+def _decision(base: dict, now: dict | None, invalidated: str, schema) -> dict:
     if now is None:
         return {"decision": "removed"}
     had = {_signature_key(s) for s in base["signatures"]}
     new = [s for s in now["signatures"] if _signature_key(s) not in had]
-    out = {"status": now["status"]}
+    st = _standing(now, schema)
+    # Whether this version's current signatures meet what the item's kind requires
+    # under the graph's rules, and what they still lack: a junior's signature can
+    # be the right decision and still not be enough on its own.
+    out = {"status": now["status"], "meets": st["met"], "missing": st["missing"] or None}
     if new:
         out.update(decision="signed", by=sorted({s.get("by") for s in new if s.get("by")}),
                    roles=sorted({s["role"] for s in new if s.get("role")}) or None)
@@ -69,6 +74,7 @@ def compare(base: Files, attempts: Mapping[str, Files], final: Files | None = No
     whether each attempt agreed with it. An item that already carried every
     decision it was going to get in ``base`` (ratified, rejected) is left out."""
     cfg = _config(base, root)
+    schema, _ = _schema(base.get(config_path(root)))
     roles = (cfg.get("status") or {}).get("roles") or {}
     invalidated = roles.get("invalidated", _DEFAULT_INVALIDATED)
     settled = {roles.get("ratified", "ratified"), invalidated, roles.get("tombstone", "deleted")}
@@ -83,9 +89,9 @@ def compare(base: Files, attempts: Mapping[str, Files], final: Files | None = No
             continue
         row = {"uid": uid, "type": b["type"], "title": b["title"], "status": b["status"], "attempts": {}}
         if kept is not None:
-            row["final"] = _decision(b, kept.get(uid), invalidated)
+            row["final"] = _decision(b, kept.get(uid), invalidated, schema)
         for name, items in tried.items():
-            d = _decision(b, items.get(uid), invalidated)
+            d = _decision(b, items.get(uid), invalidated, schema)
             if kept is not None and d["decision"] != "undecided":
                 d["agrees"] = d["decision"] == row["final"]["decision"]
                 totals[name]["decided"] += 1

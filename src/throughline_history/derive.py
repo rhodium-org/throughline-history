@@ -10,16 +10,32 @@ Items are read through throughline's own reader (``Item.from_dict``), which lift
 the flat ``ratified_*`` record of formats 1 to 3 into the signature list of
 format 4, so a history that crosses the migration reads as one history: the
 migration re-writes a signature, it does not make a new one.
+
+A signature is more than a name since format 4: it records the role it was given
+in, when, the fingerprint of what it covered and what it supersedes, and the
+graph's configuration declares roles and what each kind of item requires
+(``[ratify.roles]``, ``[ratify.requires.<type>]``). So the history follows the
+configuration commit by commit and judges every item against the rules in force
+at that commit, through throughline's own ``standing`` and ``is_stale``: when an
+item came to meet what its kind requires, when it stopped, when an amendment left
+a signature covering wording that is no longer there, and when the rules changed.
 """
 from __future__ import annotations
 
+import importlib
 import re
+import tomllib
 from dataclasses import dataclass, field
 from typing import Iterable, Mapping
 
 import yaml
 
 from throughline.model import Item
+from throughline.schema import Schema
+
+# throughline's package re-exports a function named signatures over its module of
+# the same name, so the module is reached by its full path.
+_sig = importlib.import_module("throughline.signatures")
 
 # The shape of what derive returns. A host reads this before anything else and
 # refuses a version it does not know rather than guessing at a new shape.
@@ -33,6 +49,7 @@ _ITEM_FILE = re.compile(r"(?:^|/)([A-Z][A-Z0-9]*-\d+)\.ya?ml$")
 _FIELDS = ("title", "text", "rationale", "type", "normative")
 
 EVENT_KINDS = (
+    "rules",       # the configuration's roles or signing requirements changed
     "created",     # the item's file appeared
     "removed",     # the item's file went
     "renumbered",  # in one commit a file went and one appeared with the same content under another UID
@@ -42,6 +59,9 @@ EVENT_KINDS = (
     "unlinked",    # a link was removed
     "signed",      # a signature was added
     "withdrawn",   # a withdrawal was recorded
+    "stale",       # a signature stopped covering the item: what it signed was amended
+    "met",         # the item's current signatures came to meet what its kind requires
+    "unmet",       # they stopped meeting it: a signature went stale or was withdrawn, or the rules rose
     "unreadable",  # the file could not be read as an item at this commit
 )
 
@@ -61,6 +81,8 @@ class Commit:
 class History:
     events: list[dict] = field(default_factory=list)
     commits: list[dict] = field(default_factory=list)
+    # Each live item's standing after the last commit: met, missing, held.
+    standing: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {"schemaVersion": SCHEMA_VERSION, "events": self.events, "commits": self.commits}
@@ -89,6 +111,7 @@ def _view(text: str) -> dict | None:
         return None
     attrs = {k: v for k, v in (item.attrs or {}).items() if k != "origin"}
     return {
+        "_item": item,
         "uid": item.uid,
         "type": item.type,
         "status": item.status,
@@ -131,7 +154,7 @@ def _signed(s: dict, uid: str, commit: Commit, path: str, again: bool) -> dict:
     # A signature that recorded its own moment is dated by it; one from before
     # format 4 recorded none, so it is dated by the commit that carries it.
     return _event("signed", uid, commit, path, at=s.get("at"), by=s.get("by"), id=s.get("id"),
-                  role=s.get("role"), again=True if again else None,
+                  role=s.get("role"), supersedes=s.get("supersedes"), again=True if again else None,
                   backfilled=True if s.get("backfilled") else None,
                   dated="signature" if s.get("at") else "commit")
 
@@ -184,18 +207,82 @@ def _same_content(a: dict, b: dict) -> bool:
     return all(a[k] == b[k] for k in keys)
 
 
+def config_path(root: str) -> str:
+    root = root.strip("/")
+    return "throughline.toml" if root in ("", ".") else f"{root}/throughline.toml"
+
+
+def _schema(text: str | None) -> tuple[Schema, dict]:
+    """The rules a configuration declares, and the part of it a rules event shows:
+    the roles and what each kind requires. A configuration that does not read
+    leaves the default rules, one signature of anyone."""
+    try:
+        config = tomllib.loads(text) if text else {}
+        schema = Schema.from_config(config or None)
+    except Exception:
+        return Schema.from_config(None), {}
+    ratify = config.get("ratify") or {}
+    return schema, {"roles": ratify.get("roles") or {}, "requires": ratify.get("requires") or {}}
+
+
+def _standing(view: dict, schema: Schema) -> dict:
+    """Where the item stands under ``schema``: whether its current signatures meet
+    what its kind requires, what is still missing, and which signatures are current."""
+    item = view["_item"]
+    try:
+        st = _sig.standing(item, schema)
+        current = {_signature_key(e) for e in _sig.current(item, schema)}
+        return {"met": st.met, "missing": list(st.missing), "current": current,
+                "held": [{"by": e.get("by"), "role": e.get("role")} for e in st.held]}
+    except Exception:
+        return {"met": False, "missing": [], "current": set(), "held": []}
+
+
+def _judge(before: dict | None, after: dict | None, view: dict, commit: Commit, path: str, why: str | None = None) -> list[dict]:
+    """The stale, met and unmet events between two standings of one item."""
+    evs: list[dict] = []
+    uid = view["uid"]
+    if before is not None:
+        for s in view["signatures"]:
+            k = _signature_key(s)
+            if k in before["current"] and k not in after["current"]:
+                evs.append(_event("stale", uid, commit, path, by=s.get("by"), id=s.get("id"), role=s.get("role")))
+    was = bool(before and before["met"])
+    if after["met"] and not was:
+        evs.append(_event("met", uid, commit, path, held=after["held"], cause=why))
+    elif was and not after["met"]:
+        evs.append(_event("unmet", uid, commit, path, missing=after["missing"] or None, cause=why))
+    return evs
+
+
 def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str = "") -> History:
     """The history of the graph at ``root`` (repository-relative; '' for the
     repository's own root) from ``steps``: each a commit, oldest first, with the
-    text of every file it changed, or None for a file it deleted. Files outside
-    ``root`` and files that are not items are ignored."""
+    text of every file it changed, or None for a file it deleted. The graph's
+    throughline.toml among them sets the rules items are judged by from that
+    commit on. Files outside ``root`` and files that are neither the configuration
+    nor items are ignored."""
     state: dict[str, dict] = {}
+    standing: dict[str, dict] = {}
+    schema, rules = _schema(None)
+    cfg = config_path(root)
     history = History()
     for commit, changes in steps:
         created: list[tuple[int, dict]] = []
         removed: list[tuple[int, dict]] = []
+        if cfg in changes:
+            schema, now_rules = _schema(changes[cfg])
+            if now_rules != rules:
+                history.events.append(_event("rules", "", commit, cfg, roles=now_rules.get("roles") or None,
+                                             requires=now_rules.get("requires") or None))
+                rules = now_rules
+                # The same signatures, judged by the new rules.
+                for p_, v in sorted(state.items()):
+                    st = _standing(v, schema)
+                    history.events.extend(_judge(standing.get(p_), st, v, commit, p_, why="rules"))
+                    standing[p_] = st
         for path in sorted(changes):
-            if not under(root, path):
+            if path == cfg or not under(root, path):
                 continue
             uid = item_uid(path)
             if uid is None:
@@ -215,8 +302,12 @@ def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str =
                 history.events.append(ev)
             if after is None:
                 state.pop(path, None)
+                standing.pop(path, None)
             else:
                 state[path] = after
+                st = _standing(after, schema)
+                history.events.extend(_judge(standing.get(path), st, after, commit, path))
+                standing[path] = st
         # In one commit, a file that went and one that came with the same content
         # under another UID is one item renumbered (tl resolve does this).
         drop: set[int] = set()
@@ -230,7 +321,7 @@ def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str =
                 break
         if drop:
             history.events = [e for i, e in enumerate(history.events) if i not in drop]
-        live = [v for v in state.values()]
+        live = list(state.values())
         by_status: dict[str, int] = {}
         for v in live:
             by_status[v["status"]] = by_status.get(v["status"], 0) + 1
@@ -238,7 +329,10 @@ def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str =
             **_stamp(commit), "message": commit.message.splitlines()[0] if commit.message else "",
             "items": len(live), "byStatus": dict(sorted(by_status.items())),
             "signed": sum(1 for v in live if v["signatures"]),
+            "met": sum(1 for p_ in state if standing.get(p_, {}).get("met")),
         })
+    history.standing = {state[p_]["uid"]: {k: v for k, v in st.items() if k != "current"}
+                        for p_, st in standing.items() if p_ in state}
     return history
 
 
@@ -258,7 +352,7 @@ def summarise(history: History) -> dict:
     def person(name: str | None, ident: str | None = None) -> dict:
         key = ident or named.get(name or "") or name or "unknown"
         p = people.setdefault(key, {"name": name or "unknown", "id": ident or named.get(name or ""), "names": [],
-                                    "created": 0, "amended": 0, "signed": 0, "withdrew": 0})
+                                    "roles": [], "created": 0, "amended": 0, "signed": 0, "withdrew": 0})
         if name and name not in p["names"]:
             p["names"].append(name)
             p["name"] = name
@@ -277,16 +371,23 @@ def summarise(history: History) -> dict:
         elif ev["kind"] == "status" and uid in items:
             items[uid]["status"] = ev["to"]
         elif ev["kind"] == "signed":
-            person(ev.get("by"), ev.get("id"))["signed"] += 1
+            who = person(ev.get("by"), ev.get("id"))
+            who["signed"] += 1
+            if ev.get("role") and ev["role"] not in who["roles"]:
+                who["roles"].append(ev["role"])
             if uid in items and ev.get("by") not in items[uid]["signers"]:
                 items[uid]["signers"].append(ev.get("by"))
         elif ev["kind"] == "withdrawn":
             person(ev.get("by"), ev.get("id"))["withdrew"] += 1
         elif ev["kind"] == "removed":
             items.pop(uid, None)
+    for uid, it in items.items():
+        st = history.standing.get(uid)
+        if st is not None:
+            it["standing"] = {"met": st["met"], "missing": st["missing"], "held": st["held"]}
     return {"schemaVersion": SCHEMA_VERSION, "items": list(items.values()),
             "people": [{k: v for k, v in p.items() if v is not None} for _, p in sorted(people.items())]}
 
 
-__all__ = ["Commit", "History", "derive", "summarise", "under", "item_uid", "EVENT_KINDS", "SCHEMA_VERSION"]
+__all__ = ["Commit", "History", "derive", "summarise", "under", "item_uid", "config_path", "EVENT_KINDS", "SCHEMA_VERSION"]
 

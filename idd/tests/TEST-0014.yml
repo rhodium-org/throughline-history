@@ -1,0 +1,14 @@
+uid: TEST-0014
+type: test
+status: proposed
+title: A junior's signature alone does not meet a senior requirement
+text: 'tests/test_derive.py, test_an_item_meets_its_kind_only_when_its_signatures_do:
+  under rules requiring a senior, a junior''s signature gives no met event, the senior''s
+  gives met with the senior held, an amendment gives unmet with what is missing;
+  the tallies read 0, 0, 1, 0 met.'
+normative: false
+links:
+- target: REQ-0013
+  type: verifies
+attrs:
+  origin: ai

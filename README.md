@@ -39,7 +39,16 @@ a local checkout, a page does it from GitHub.
   ever written in reads as one history. A migration rewrites a signature; it does
   not make one.
 - A signature is dated by the time it recorded (format 4) or, before that, by the
-  commit that carried it, and each event says which.
+  commit that carried it, and each event says which. It carries the role it was
+  given in and what it supersedes.
+- Every item is judged at every commit by the rules the graph's `throughline.toml`
+  declared then (`[ratify.roles]`, `[ratify.requires.<type>]`), through throughline's
+  own `standing`: the history says when an item's signatures came to meet what its
+  kind requires and when they stopped, when an amendment left a signature covering
+  wording that is no longer there, and when the rules changed. A graph that declares
+  no rules needs one signature of anyone.
+- A comparison says, for each attempt, whether its signatures would meet those
+  rules: a junior's can be the right decision and still not be enough.
 - Roles come only from the signatures in the graph. Nothing is inferred from
   GitHub, and nothing is ever written.
 

@@ -2,11 +2,11 @@ uid: TEST-0012
 type: test
 status: proposed
 title: tl-history over a real checkout
-text: 'tests/test_cli.py: a branch signing an item, merged into main by a merge commit,
-  appears as the branch''s own commit; a branch commit dated between two main-line
-  commits whose trees lack its file makes one created event and no removal; compare
-  of the branch against main''s parent and main reads signed and agreed; outside
-  a repository the command exits 2 with one line.'
+text: 'tests/test_cli.py: a branch signing an item, merged by a merge commit, appears
+  as the branch''s own commit; a branch commit dated between two main-line commits
+  makes one created event and no removal; a commit declaring a role in throughline.toml
+  is a rules event; compare of named refs reads signed and agreed; outside a repository
+  the command exits 2.'
 normative: false
 links:
 - target: REQ-0012

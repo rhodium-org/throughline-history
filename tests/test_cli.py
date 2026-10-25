@@ -54,13 +54,17 @@ def test_tl_history_reads_a_checkout_and_a_branch_merged_by_a_merge_commit(tmp_p
           item("REQ-0001", status="ratified", text="Changed.", signatures=[{"by": "Ada", "id": "github:ada", "fingerprint": "sha256:a"}]))
     git(repo, "commit", "-q", "-am", "Amend REQ-0001")
     git(repo, "merge", "-q", "--no-ff", "-m", "Merge other", "other")
+    write(repo, "idd/throughline.toml", TOML + '\n[ratify.roles]\nsenior = ["github:bob"]\n')
+    git(repo, "commit", "-q", "-am", "Declare a senior")
     assert main(["-C", str(repo / "idd"), "--format", "json"]) == 0
     later = json.loads(capsys.readouterr().out)
+    assert [e["roles"] for e in later["events"] if e["kind"] == "rules"] == [{"senior": ["github:bob"]}]
     assert [e["kind"] for e in later["events"] if e["uid"] == "REQ-0002"] == ["created"]
 
     assert main(["compare", "-C", str(repo / "idd"), "--base", "start", "--final", "merged", "--format", "json", "junior=junior"]) == 0
     cmp = json.loads(capsys.readouterr().out)
-    assert cmp["items"][0]["attempts"]["junior"] == {"status": "ratified", "decision": "signed", "by": ["Ada"], "agrees": True}
+    j = cmp["items"][0]["attempts"]["junior"]
+    assert {k: j[k] for k in ("status", "decision", "by", "agrees")} == {"status": "ratified", "decision": "signed", "by": ["Ada"], "agrees": True}
 
 
 def test_outside_a_repository_it_says_so_and_exits_2(tmp_path, capsys):
