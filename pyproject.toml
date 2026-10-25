@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "throughline-history"
+version = "0.1.0"
+description = "How a throughline graph came to be, read from git: who created each item, who signed it and when, how it changed. Also compares independent signings of the same items against what was finally kept. Pure functions that run in a browser tab under Pyodide, and a tl-history command over a local checkout."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Henry J Grech-Cini", email = "henry.grechcini@gmail.com" }]
+keywords = ["requirements", "throughline", "idd", "history", "ratification", "traceability", "git"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+]
+# throughline reads every item, whatever format it was written in: Item.from_dict
+# lifts the flat ratified_* record of formats 1 to 3 into the signature list of 4.
+dependencies = ["throughline>=4.0.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+tl-history = "throughline_history.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/rhodium-org/throughline-history"
+
+[tool.setuptools.packages.find]
+where = ["src"]

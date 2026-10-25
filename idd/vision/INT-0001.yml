@@ -1,0 +1,17 @@
+uid: INT-0001
+type: intent
+status: proposed
+title: See how a graph came to be, and compare independent signings, from git alone
+text: 'A throughline graph''s history is in git already: who created each item, who
+  signed it and when, how it changed. This package reads that history into events
+  and tallies, and sets several people''s independent signings of the same items
+  beside each other and beside what was finally kept. It is the reader behind history.iddn.uk
+  and learn.iddn.uk, and runs in the reader''s own browser tab, so no server sees
+  a token or a graph.'
+rationale: 'Decided with the operator on 2026-10-25: a package of its own, importing
+  throughline as a library and run under Pyodide through browser-core, not a tl verb
+  and not an estate service; nothing is added to a graph or its configuration and
+  nothing is committed.'
+normative: false
+attrs:
+  origin: ai

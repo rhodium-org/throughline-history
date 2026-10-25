@@ -1,0 +1,14 @@
+uid: REQ-0002
+type: requirement
+status: proposed
+title: A signature is dated by its own time, else by its commit
+text: A signed event is dated by the time the signature recorded, where it recorded
+  one, and otherwise by the commit that carried it, and says which of the two it
+  is.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

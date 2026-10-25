@@ -1,0 +1,15 @@
+uid: REQ-0008
+type: requirement
+status: proposed
+title: A summary per item and per person
+text: summarise gives, per item, who created it, when, its type, origin, status and
+  signers, and, per person, how many items they created, amended, signed and withdrew
+  a signature from. Signatures sharing an identifier are one person, named by the
+  last name used.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: should
+  origin: ai

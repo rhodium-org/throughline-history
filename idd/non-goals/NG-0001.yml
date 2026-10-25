@@ -1,0 +1,10 @@
+uid: NG-0001
+type: non_goal
+status: proposed
+title: No role is inferred from GitHub
+text: Who someone is on a project comes only from the graph's own configuration and
+  the signatures it holds. Push, merge and review rights on GitHub say nothing about
+  seniority, so this package never reads them as roles.
+normative: false
+attrs:
+  origin: ai

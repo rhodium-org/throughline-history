@@ -1,0 +1,13 @@
+uid: TEST-0008
+type: test
+status: proposed
+title: One signer under two names is one person
+text: 'tests/test_derive.py, test_the_summary_groups_one_signer_by_their_id: two
+  signatures with one identifier and two names count as one person named by the later
+  name; each item names its creator.'
+normative: false
+links:
+- target: REQ-0008
+  type: verifies
+attrs:
+  origin: ai

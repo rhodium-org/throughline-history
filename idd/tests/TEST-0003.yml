@@ -1,0 +1,13 @@
+uid: TEST-0003
+type: test
+status: proposed
+title: A migrated signature is not a new one
+text: 'tests/test_derive.py, test_a_migration_rewrites_a_signature_and_does_not_make_one:
+  an item signed in the flat record, then rewritten as a list entry with the same
+  person, identifier and fingerprint, yields one signed event.'
+normative: false
+links:
+- target: REQ-0003
+  type: verifies
+attrs:
+  origin: ai

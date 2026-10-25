@@ -1,0 +1,17 @@
+uid: REQ-0010
+type: requirement
+status: proposed
+title: Independent signings are compared with what was kept
+text: compare takes a base version, named attempts and optionally a final version,
+  and for each item still waiting for a decision in the base gives each attempt's
+  decision (signed with who and in what role, rejected with the reason, other, undecided
+  or removed), the final version's, and whether each attempt agreed with it; per
+  attempt, how many it decided and how many agreed. Items already settled in the
+  base are left out.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

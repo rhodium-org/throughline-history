@@ -1,0 +1,15 @@
+uid: REQ-0001
+type: requirement
+status: proposed
+title: Each change a commit made to an item is one event
+text: 'derive takes the commits that touched a graph, oldest first, each with the
+  text of every file it changed, and returns one event per change to an item: created,
+  amended (naming the fields), status (from and to), linked and unlinked (naming
+  the target and type), each carrying the commit''s sha, author and time.'
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

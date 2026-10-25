@@ -1,0 +1,13 @@
+uid: TEST-0006
+type: test
+status: proposed
+title: Only item files inside the graph
+text: 'tests/test_derive.py, test_only_item_files_inside_the_graph_are_read: a register
+  manifest, the configuration and an item outside the graph''s directory make no
+  event; a UID-named file that does not parse is unreadable.'
+normative: false
+links:
+- target: REQ-0006
+  type: verifies
+attrs:
+  origin: ai

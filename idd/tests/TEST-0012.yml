@@ -1,0 +1,14 @@
+uid: TEST-0012
+type: test
+status: proposed
+title: tl-history over a real checkout
+text: 'tests/test_cli.py: a branch signing an item, merged into main by a merge commit,
+  appears in the events as the merge; compare of the branch against main''s parent
+  and main reads signed and agreed; outside a repository the command exits 2 with
+  one line.'
+normative: false
+links:
+- target: REQ-0012
+  type: verifies
+attrs:
+  origin: ai

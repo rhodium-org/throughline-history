@@ -1,0 +1,12 @@
+uid: TEST-0011
+type: test
+status: proposed
+title: The graph names its own rejected status
+text: 'tests/test_compare.py, test_the_invalidated_status_is_the_graphs_own: a graph
+  whose invalidated status is refused has an item moved to refused read as rejected.'
+normative: false
+links:
+- target: REQ-0011
+  type: verifies
+attrs:
+  origin: ai

@@ -1,0 +1,14 @@
+uid: TEST-0001
+type: test
+status: proposed
+title: Creation, amendment, status and links are one event each
+text: 'tests/test_derive.py, test_each_kind_of_change_is_one_event: three commits
+  create an item, change its text and link, and move its status; the events are created,
+  amended (text), linked, unlinked and status, in that order, carrying the commit''s
+  author.'
+normative: false
+links:
+- target: REQ-0001
+  type: verifies
+attrs:
+  origin: ai

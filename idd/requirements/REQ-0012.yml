@@ -1,0 +1,15 @@
+uid: REQ-0012
+type: requirement
+status: proposed
+title: tl-history reads a checkout
+text: tl-history prints a graph's events, a summary, or a comparison of named git
+  refs, as text or JSON. It walks the line the named branch took, so a branch merged
+  by a merge commit arrives as that merge. Outside a git repository it says so in
+  a line and exits 2.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: should
+  origin: ai

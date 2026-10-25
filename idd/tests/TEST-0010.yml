@@ -1,0 +1,14 @@
+uid: TEST-0010
+type: test
+status: proposed
+title: Attempts beside what was kept
+text: 'tests/test_compare.py, test_each_attempt_is_set_beside_what_was_kept: a junior
+  and a senior decide three proposed items differently; each decision, its agreement
+  with the final version and each attempt''s decided and agreed counts are as set
+  up, and a ratified item is left out.'
+normative: false
+links:
+- target: REQ-0010
+  type: verifies
+attrs:
+  origin: ai

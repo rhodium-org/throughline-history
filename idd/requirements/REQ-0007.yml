@@ -1,0 +1,14 @@
+uid: REQ-0007
+type: requirement
+status: proposed
+title: Each commit carries a tally
+text: After each commit, the history records how many items there are, how many in
+  each status and how many carry a signature, beside the commit's sha, author, time
+  and first line.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: should
+  origin: ai

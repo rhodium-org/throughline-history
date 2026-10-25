@@ -1,0 +1,12 @@
+uid: TEST-0007
+type: test
+status: proposed
+title: A tally after each commit
+text: 'tests/test_derive.py, test_each_commit_carries_a_tally: two commits give counts
+  of items, by status and signed, and the first line of each message.'
+normative: false
+links:
+- target: REQ-0007
+  type: verifies
+attrs:
+  origin: ai

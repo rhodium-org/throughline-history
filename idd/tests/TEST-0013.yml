@@ -1,0 +1,12 @@
+uid: TEST-0013
+type: test
+status: proposed
+title: Every output names its schema version
+text: 'tests/test_derive.py, test_every_output_names_its_schema_version: derive,
+  summarise and compare each carry schemaVersion equal to the package''s.'
+normative: false
+links:
+- target: NFR-0001
+  type: verifies
+attrs:
+  origin: ai

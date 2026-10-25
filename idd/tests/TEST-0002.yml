@@ -1,0 +1,13 @@
+uid: TEST-0002
+type: test
+status: proposed
+title: A signature's date is its own or its commit's
+text: 'tests/test_derive.py, test_a_signature_is_dated_by_its_own_time_else_by_its_commit:
+  a flat-record signature is dated by its commit and says so; a format 4 signature
+  with a time and a role is dated by that time and carries the role.'
+normative: false
+links:
+- target: REQ-0002
+  type: verifies
+attrs:
+  origin: ai

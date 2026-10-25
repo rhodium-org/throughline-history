@@ -1,0 +1,14 @@
+uid: REQ-0009
+type: requirement
+status: proposed
+title: What runs in a browser reads no git and starts no process
+text: 'derive, summarise and compare read only what they are given: no git, no network,
+  no process, no clock. Only the module that feeds tl-history from a checkout reads
+  git.'
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

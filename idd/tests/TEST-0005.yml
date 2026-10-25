@@ -1,0 +1,13 @@
+uid: TEST-0005
+type: test
+status: proposed
+title: A removed item and a renumbered one
+text: 'tests/test_derive.py, test_a_removed_file_and_a_renumbered_item: a file replaced
+  in one commit by one with the same content under a new UID is one renumbered event
+  naming the old UID; a file that just goes is removed.'
+normative: false
+links:
+- target: REQ-0005
+  type: verifies
+attrs:
+  origin: ai

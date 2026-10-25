@@ -1,0 +1,15 @@
+uid: REQ-0003
+type: requirement
+status: proposed
+title: A migration does not make a signature
+text: A signature is the same signature when the person, their identifier and the
+  fingerprint they signed are the same, whatever format records it, so the flat record
+  of formats 1 to 3 lifted into the list of format 4 makes no new signed event. Items
+  are read through throughline's own reader.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

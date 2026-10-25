@@ -1,0 +1,12 @@
+uid: TEST-0009
+type: test
+status: proposed
+title: No process is started
+text: 'tests/test_derive.py, test_derive_and_compare_never_reach_for_git: with subprocess.run
+  and Popen made to fail, derive, summarise and compare all complete.'
+normative: false
+links:
+- target: REQ-0009
+  type: verifies
+attrs:
+  origin: ai

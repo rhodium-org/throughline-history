@@ -1,0 +1,9 @@
+uid: NG-0002
+type: non_goal
+status: proposed
+title: Nothing is written
+text: This package reads files and returns data. It writes no item, no configuration
+  and no commit, and keeps nothing between calls.
+normative: false
+attrs:
+  origin: ai

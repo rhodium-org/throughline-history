@@ -1,0 +1,15 @@
+uid: REQ-0006
+type: requirement
+status: proposed
+title: Only item files inside the graph are read
+text: derive reads only files under the graph's directory that are named for a UID.
+  A configuration file, a register manifest and anything outside the directory are
+  ignored; a file named for a UID that does not read as an item is an unreadable
+  event, never a guess.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai

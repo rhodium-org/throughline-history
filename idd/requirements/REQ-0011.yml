@@ -1,0 +1,14 @@
+uid: REQ-0011
+type: requirement
+status: proposed
+title: Rejected is the graph's own invalidated status
+text: compare reads which status counts as rejected from the base version's configuration
+  ([status.roles] invalidated), and assumes rejected only where the configuration
+  names none.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai
