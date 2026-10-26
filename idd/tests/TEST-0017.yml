@@ -1,0 +1,15 @@
+uid: TEST-0017
+type: test
+status: proposed
+title: No lineage where none is recorded; recorded lineage exactly
+text: 'tests/test_repo.py: a shape graph composing a library graph whose configuration
+  cites it in a comment gives both shapedBy null and no lineage, the composition
+  shown as a source; once the library records [shaped_by], one shaped event and one
+  lineage edge name the shape graph and the register''s decision; a graph whose configuration
+  goes is removed; an item belongs to the deepest graph holding it.'
+normative: false
+links:
+- target: REQ-0016
+  type: verifies
+attrs:
+  origin: ai

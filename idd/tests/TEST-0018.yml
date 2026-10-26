@@ -1,0 +1,15 @@
+uid: TEST-0018
+type: test
+status: proposed
+title: Links classed by reach, types counted
+text: 'tests/test_repo.py, test_links_are_classed_by_where_they_reach and test_a_link_into_a_sibling_graph_keeps_its_own_graph:
+  a link to a declared external source is external and one under an undeclared namespace
+  is undeclared; a link into a sibling graph keeps its own graph and names the graph
+  it reaches as into; the last commit counts one local, one external and one undeclared
+  link, and two requirements by type.'
+normative: false
+links:
+- target: REQ-0017
+  type: verifies
+attrs:
+  origin: ai

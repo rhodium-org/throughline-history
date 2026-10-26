@@ -1,0 +1,27 @@
+uid: REQ-0016
+type: requirement
+status: proposed
+title: A repository's graphs are followed together, and only recorded lineage is
+  shown
+text: 'derive_repo follows every graph a repository holds, each wherever its throughline.toml
+  sits: when it was born and removed, the sources its [[sources]] declare (a sibling
+  graph, another path, or another repository at a ref) as they are declared, re-pinned
+  and dropped, its registers and the type each holds, its node and link types, and
+  every item''s history inside it, each item belonging to the deepest graph holding
+  it. A graph is said to have been shaped by another only where its own [shaped_by]
+  table says so, naming the shape graph and the decision behind each register; a
+  graph that records none shows none. Nothing is inferred from the order graphs appeared
+  in, from comments, or from one graph composing another.'
+rationale: 'The operator, 26 October 2026: history must show every node type and
+  link and how a shape graph gave rise to the graphs it shaped and how they link;
+  then: if the association is not there history cannot assume it, so be backward
+  compatible and let people know what to expect, with no implied association, and
+  add the association as graphs are used. The lineage is recorded by tl:shape in
+  the shaped graph''s configuration (throughline-skills shape REQ-0011).'
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: must
+  origin: ai
