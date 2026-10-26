@@ -2,12 +2,14 @@ uid: REQ-0012
 type: requirement
 status: proposed
 title: tl-history reads a checkout
-text: tl-history prints a graph's events, a summary, or a comparison of named git
-  refs, as text or JSON. It reads every commit reachable from the ref that changed
-  the graph's items or its configuration, merges left out, each against its own parent,
-  so a change is the commit's that made it, by its author and at its time, and branches
-  interleaved in time never make a file seem to come and go. Outside a git repository
-  it says so in a line and exits 2.
+text: tl-history prints a graph's events, a summary, every graph in the repository,
+  or a comparison of named git refs, as text or JSON. It reads every commit reachable
+  from the ref that changed a graph file, merges included, each against each of its
+  parents with the commit's own version of each file, so a change is the commit's
+  that made it and a branch's work is not counted again at its merge, while what
+  a merge itself changed is the merge's; a moved file is read as its old path going
+  and its new one coming. Outside a git repository it says so in a line and exits
+  2.
 normative: true
 links:
 - target: INT-0001

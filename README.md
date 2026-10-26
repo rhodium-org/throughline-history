@@ -13,6 +13,7 @@ your graph. The same functions run on your machine through `tl-history`.
 pipx install throughline-history
 tl-history -C idd                    # every event, oldest first
 tl-history -C idd summary            # per person: created, amended, signed
+tl-history graphs                    # every graph in the repository: sources, registers, recorded lineage
 tl-history -C idd compare --base main~3 --final main junior=review/junior senior=review/senior
 ```
 
@@ -29,7 +30,23 @@ summarise(history)    # per item and per person
 compare(base_files, {"junior": files, "senior": files}, final_files, root="idd")
 ```
 
-`derive`, `summarise` and `compare` read only what they are given: no git, no
+For a whole repository, `derive_repo` follows every graph together: when each was
+born and removed, the sources it declares (a sibling graph, another path, or another
+repository at a ref), its registers, node types and link types, every item inside it,
+and where its links reach. A graph is shown as shaped by another only where its own
+`throughline.toml` says so in a `[shaped_by]` table (the `tl:shape` skill writes one);
+nothing is inferred from order, comments or composition.
+
+```python
+from throughline_history.repo import derive_repo
+derive_repo(steps).to_json()   # {"schemaVersion": 2, "graphs": [...], "lineage": [...], "events": [...], "commits": [...]}
+```
+
+Every commit is read against each of its parents with its own version of each file,
+merges included, so a branch's work is its commits' and what a merge itself changed
+is the merge's; a moved file is its old path going and its new one coming.
+
+`derive`, `summarise`, `compare` and `derive_repo` read only what they are given: no git, no
 network, no process. The caller fetches the commits; `tl-history` does that from
 a local checkout, a page does it from GitHub.
 

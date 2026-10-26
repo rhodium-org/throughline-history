@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "throughline-history"
-version = "0.1.0"
+version = "0.2.0"
 description = "How a throughline graph came to be, read from git: who created each item, who signed it and when, how it changed. Also compares independent signings of the same items against what was finally kept. Pure functions that run in a browser tab under Pyodide, and a tl-history command over a local checkout."
 readme = "README.md"
 requires-python = ">=3.11"

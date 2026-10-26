@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="command")
     sub.add_parser("events", help="every event, oldest first (the default)", parents=[common])
     sub.add_parser("summary", help="per item and per person", parents=[common])
+    sub.add_parser("graphs", help="every graph in the repository: sources, registers, recorded lineage", parents=[common])
     c = sub.add_parser("compare", help="independent signings beside what was kept", parents=[common])
     c.add_argument("--base", required=True, help="the version the attempts started from")
     c.add_argument("--final", help="the version that holds what was kept")
@@ -61,6 +62,23 @@ def main(argv: list[str] | None = None) -> int:
                     cells = "  ".join(f'{n}={d["decision"]}' for n, d in row["attempts"].items())
                     fin = f'  final={row["final"]["decision"]}' if "final" in row else ""
                     print(f'{row["uid"]:<10} {cells}{fin}')
+            return 0
+        if a.command == "graphs":
+            from .git import repo_steps
+            from .repo import derive_repo
+            rh = derive_repo(repo_steps(top))
+            out = rh.to_json()
+            if a.format == "json":
+                print(json.dumps(out, indent=2))
+            else:
+                for g in out["graphs"]:
+                    gone = " (removed)" if g["removed"] else ""
+                    print(f'{g["root"] or "."}: {g["name"]}{gone}, born {g["born"]["at"][:10]}, '
+                          f'{len(g["registers"])} registers, {len(g["types"])} node types, {len(g["linkTypes"])} link types')
+                    for s in g["sources"]:
+                        where = s.get("graph") if s.get("kind") != "external" else f'{s.get("url")}@{s.get("ref")}'
+                        print(f'  draws on {s["namespace"]}: {s.get("kind")} {where}' + (f' (shaped by {", ".join(s["shapedBy"])})' if s.get("shapedBy") else ""))
+                    print(f'  shaped by: {g["shapedBy"]["graph"]}' if g["shapedBy"] else "  shaped by: no lineage recorded")
             return 0
         history = derive(steps(top, root), root)
         if a.command == "summary":

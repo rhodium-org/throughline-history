@@ -1,0 +1,15 @@
+uid: REQ-0017
+type: requirement
+status: proposed
+title: Links are classed by where they reach, and every commit counts types
+text: Each link is classed as local, to a sibling graph or another path or repository
+  its graph's configuration declares under that namespace, or under a namespace the
+  configuration does not declare; after each commit every graph counts its items
+  by status and by node type, and its links by link type and by where they reach.
+normative: true
+links:
+- target: INT-0001
+  type: derives_from
+attrs:
+  priority: should
+  origin: ai

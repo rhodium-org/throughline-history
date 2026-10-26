@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import importlib
 import re
+from collections import Counter
 import tomllib
 from dataclasses import dataclass, field
 from typing import Iterable, Mapping
@@ -255,59 +256,62 @@ def _judge(before: dict | None, after: dict | None, view: dict, commit: Commit, 
     return evs
 
 
-def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str = "") -> History:
-    """The history of the graph at ``root`` (repository-relative; '' for the
-    repository's own root) from ``steps``: each a commit, oldest first, with the
-    text of every file it changed, or None for a file it deleted. The graph's
-    throughline.toml among them sets the rules items are judged by from that
-    commit on. Files outside ``root`` and files that are neither the configuration
-    nor items are ignored."""
-    state: dict[str, dict] = {}
-    standing: dict[str, dict] = {}
-    schema, rules = _schema(None)
-    cfg = config_path(root)
-    history = History()
-    for commit, changes in steps:
+class GraphTracker:
+    """One graph's history, followed commit by commit: its items, their standing
+    under the rules its configuration declares, and a tally after each commit.
+    derive() runs one; derive_repo() runs one for each graph a repository holds."""
+
+    def __init__(self, root: str = ""):
+        self.root = root.strip("/")
+        if self.root == ".":
+            self.root = ""
+        self.cfg = config_path(self.root)
+        self.state: dict[str, dict] = {}
+        self.standing: dict[str, dict] = {}
+        self.schema, self.rules = _schema(None)
+
+    def step(self, commit: Commit, changes: Mapping[str, str | None]) -> tuple[list[dict], dict]:
+        """The events one commit's changes make in this graph, and the tally after it."""
+        events: list[dict] = []
         created: list[tuple[int, dict]] = []
         removed: list[tuple[int, dict]] = []
-        if cfg in changes:
-            schema, now_rules = _schema(changes[cfg])
-            if now_rules != rules:
-                history.events.append(_event("rules", "", commit, cfg, roles=now_rules.get("roles") or None,
-                                             requires=now_rules.get("requires") or None))
-                rules = now_rules
+        if self.cfg in changes:
+            self.schema, now_rules = _schema(changes[self.cfg])
+            if now_rules != self.rules:
+                events.append(_event("rules", "", commit, self.cfg, roles=now_rules.get("roles") or None,
+                                     requires=now_rules.get("requires") or None))
+                self.rules = now_rules
                 # The same signatures, judged by the new rules.
-                for p_, v in sorted(state.items()):
-                    st = _standing(v, schema)
-                    history.events.extend(_judge(standing.get(p_), st, v, commit, p_, why="rules"))
-                    standing[p_] = st
+                for p_, v in sorted(self.state.items()):
+                    st = _standing(v, self.schema)
+                    events.extend(_judge(self.standing.get(p_), st, v, commit, p_, why="rules"))
+                    self.standing[p_] = st
         for path in sorted(changes):
-            if path == cfg or not under(root, path):
+            if path == self.cfg or not under(self.root, path):
                 continue
             uid = item_uid(path)
             if uid is None:
                 continue
             text = changes[path]
-            before = state.get(path)
+            before = self.state.get(path)
             after = _view(text) if text is not None else None
             if text is not None and after is None:
-                history.events.append(_event("unreadable", uid, commit, path))
+                events.append(_event("unreadable", uid, commit, path))
                 continue
-            evs = _diff(before, after, commit, path, uid)
-            for ev in evs:
+            for ev in _diff(before, after, commit, path, uid):
                 if ev["kind"] == "created":
-                    created.append((len(history.events), after))
+                    created.append((len(events), after))
                 elif ev["kind"] == "removed":
-                    removed.append((len(history.events), before))
-                history.events.append(ev)
+                    removed.append((len(events), before))
+                events.append(ev)
             if after is None:
-                state.pop(path, None)
-                standing.pop(path, None)
+                self.state.pop(path, None)
+                self.standing.pop(path, None)
             else:
-                state[path] = after
-                st = _standing(after, schema)
-                history.events.extend(_judge(standing.get(path), st, after, commit, path))
-                standing[path] = st
+                self.state[path] = after
+                st = _standing(after, self.schema)
+                events.extend(_judge(self.standing.get(path), st, after, commit, path))
+                self.standing[path] = st
         # In one commit, a file that went and one that came with the same content
         # under another UID is one item renumbered (tl resolve does this).
         drop: set[int] = set()
@@ -315,24 +319,47 @@ def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str =
             for ci, came in created:
                 if ci in drop or gone["uid"] == came["uid"] or not _same_content(gone, came):
                     continue
-                history.events[ri] = _event("renumbered", came["uid"], commit, history.events[ri]["path"],
-                                            **{"from": gone["uid"], "title": came["title"]})
+                events[ri] = _event("renumbered", came["uid"], commit, events[ri]["path"],
+                                    **{"from": gone["uid"], "title": came["title"]})
                 drop.add(ci)
                 break
         if drop:
-            history.events = [e for i, e in enumerate(history.events) if i not in drop]
-        live = list(state.values())
-        by_status: dict[str, int] = {}
-        for v in live:
-            by_status[v["status"]] = by_status.get(v["status"], 0) + 1
-        history.commits.append({
-            **_stamp(commit), "message": commit.message.splitlines()[0] if commit.message else "",
-            "items": len(live), "byStatus": dict(sorted(by_status.items())),
+            events = [e for i, e in enumerate(events) if i not in drop]
+        return events, self.tally()
+
+    def tally(self) -> dict:
+        """The graph as it stands: items in all, by status and by node type; items
+        signed and items meeting their kind's requirement; links by link type."""
+        live = list(self.state.values())
+        count = lambda keys: dict(sorted(Counter(keys).items()))
+        return {
+            "items": len(live),
+            "byStatus": count(v["status"] for v in live),
+            "byType": count(v["type"] for v in live),
             "signed": sum(1 for v in live if v["signatures"]),
-            "met": sum(1 for p_ in state if standing.get(p_, {}).get("met")),
-        })
-    history.standing = {state[p_]["uid"]: {k: v for k, v in st.items() if k != "current"}
-                        for p_, st in standing.items() if p_ in state}
+            "met": sum(1 for p_ in self.state if self.standing.get(p_, {}).get("met")),
+            "links": count(k for v in live for _, k in v["links"]),
+        }
+
+    def final_standing(self) -> dict:
+        return {self.state[p_]["uid"]: {k: v for k, v in st.items() if k != "current"}
+                for p_, st in self.standing.items() if p_ in self.state}
+
+
+def derive(steps: Iterable[tuple[Commit, Mapping[str, str | None]]], root: str = "") -> History:
+    """The history of the graph at ``root`` (repository-relative; '' for the
+    repository's own root) from ``steps``: each a commit, oldest first, with the
+    text of every file it changed, or None for a file it deleted. The graph's
+    throughline.toml among them sets the rules items are judged by from that
+    commit on. Files outside ``root`` and files that are neither the configuration
+    nor items are ignored."""
+    graph = GraphTracker(root)
+    history = History()
+    for commit, changes in steps:
+        events, tally = graph.step(commit, changes)
+        history.events.extend(events)
+        history.commits.append({**_stamp(commit), "message": commit.message.splitlines()[0] if commit.message else "", **tally})
+    history.standing = graph.final_standing()
     return history
 
 
@@ -389,5 +416,5 @@ def summarise(history: History) -> dict:
             "people": [{k: v for k, v in p.items() if v is not None} for _, p in sorted(people.items())]}
 
 
-__all__ = ["Commit", "History", "derive", "summarise", "under", "item_uid", "config_path", "EVENT_KINDS", "SCHEMA_VERSION"]
+__all__ = ["Commit", "History", "GraphTracker", "derive", "summarise", "under", "item_uid", "config_path", "EVENT_KINDS", "SCHEMA_VERSION"]
 

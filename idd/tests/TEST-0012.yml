@@ -3,10 +3,12 @@ type: test
 status: proposed
 title: tl-history over a real checkout
 text: 'tests/test_cli.py: a branch signing an item, merged by a merge commit, appears
-  as the branch''s own commit; a branch commit dated between two main-line commits
-  makes one created event and no removal; a commit declaring a role in throughline.toml
-  is a rules event; compare of named refs reads signed and agreed; outside a repository
-  the command exits 2.'
+  as the branch''s commit and the merge adds nothing; a branch commit dated between
+  two main-line commits makes one created event and no removal; a commit declaring
+  a role is a rules event; a graph moved with git mv, and one renamed inside a merge,
+  is its old path removed and its new one born, the branch''s items created once
+  there; compare of named refs reads signed and agreed; outside a repository the
+  command exits 2.'
 normative: false
 links:
 - target: REQ-0012

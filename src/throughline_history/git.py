@@ -10,6 +10,9 @@ from pathlib import Path
 
 from .derive import Commit, config_path, item_uid, under
 
+CONFIG = "throughline.toml"
+MANIFEST = ".register.yml"
+
 _SEP = "\x1f"
 _REC = "\x1e"
 
@@ -47,27 +50,40 @@ def _show(top: Path, sha: str, path: str) -> str | None:
         return None
 
 
-def steps(top: Path, root: str, ref: str = "HEAD"):
-    """Each commit reachable from ``ref`` that touched the graph at ``root``,
-    oldest first, with the text of every item file it changed."""
-    spec = [root] if root else []
-    # Every commit reachable from ref that changed the graph, merges left out, each
-    # carrying only what it changed against its own parent: a change is attributed to
-    # the person who made it, when they made it, not to whoever merged it, and a
-    # branch interleaved in time with main never makes a file seem to come and go.
-    # A merge's own diff would repeat its branch's changes, so it is not read.
-    log = _git(top, "log", "--reverse", "--date-order", "--no-merges", ref,
+def _records(top: Path, ref: str, spec: list[str]):
+    """Each commit reachable from ``ref`` that changed a path in ``spec``, oldest
+    first, with every path it changed against any of its parents.
+
+    Merges are read too, against each parent (-m): a change a branch made arrives
+    at the merge with the text the branch commit already gave it, and derive sees
+    nothing new; what the merge itself changed, a resolution, a rename or a file
+    it dropped, is the merge's own change. --no-renames: a moved file is its old
+    path going and its new one coming."""
+    log = _git(top, "log", "--reverse", "--date-order", "-m", "--no-renames", ref,
                f"--format={_REC}%H{_SEP}%an{_SEP}%aI{_SEP}%s", "--name-only", "--", *spec)
+    order: list[str] = []
+    seen: dict[str, tuple[str, str, str, set[str]]] = {}
     for record in log.split(_REC)[1:]:
         head, _, names = record.partition("\n")
         sha, author, at, subject = head.split(_SEP, 3)
-        changed = {}
-        for name in names.splitlines():
-            name = name.strip()
-            # Items, and the configuration whose rules they are judged by.
-            if name and under(root, name) and (item_uid(name) or name == config_path(root)):
-                changed[name] = _show(top, sha, name)
-        yield Commit(sha=sha, author=author, at=at, message=subject), changed
+        if sha not in seen:
+            order.append(sha)
+            seen[sha] = (author, at, subject, set())
+        seen[sha][3].update(n.strip() for n in names.splitlines() if n.strip())
+    for sha in order:
+        author, at, subject, names = seen[sha]
+        yield sha, author, at, subject, sorted(names)
+
+
+def steps(top: Path, root: str, ref: str = "HEAD"):
+    """Each commit reachable from ``ref`` that changed the graph at ``root``,
+    oldest first, with the text it gives every item file and the configuration it
+    changed against any of its parents."""
+    for sha, author, at, subject, names in _records(top, ref, [root] if root else []):
+        changed = {n: _show(top, sha, n) for n in names
+                   if under(root, n) and (item_uid(n) or n == config_path(root))}
+        if changed:
+            yield Commit(sha=sha, author=author, at=at, message=subject), changed
 
 
 def files_at(top: Path, root: str, ref: str) -> dict[str, str]:
@@ -81,3 +97,19 @@ def files_at(top: Path, root: str, ref: str) -> dict[str, str]:
             if text is not None:
                 out[name] = text
     return out
+
+
+def _graph_file(name: str) -> bool:
+    """A file the repository reader follows: a configuration, a register's
+    manifest, or an item named for its UID."""
+    base = name.rsplit("/", 1)[-1]
+    return base in (CONFIG, MANIFEST) or item_uid(name) is not None
+
+
+def repo_steps(top: Path, ref: str = "HEAD"):
+    """Every commit reachable from ``ref`` that changed a graph file anywhere in
+    the repository, oldest first, read as steps() reads one graph's."""
+    for sha, author, at, subject, names in _records(top, ref, ["*" + CONFIG, "*" + MANIFEST, "*.yml", "*.yaml"]):
+        changed = {n: _show(top, sha, n) for n in names if _graph_file(n) and "/node_modules/" not in "/" + n}
+        if changed:
+            yield Commit(sha=sha, author=author, at=at, message=subject), changed

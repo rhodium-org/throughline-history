@@ -2,9 +2,10 @@ uid: NFR-0001
 type: nfr
 status: proposed
 title: The output names its schema version
-text: Everything derive, summarise and compare return carries schemaVersion, and
-  a change to its shape that a reader of the old shape would misread raises it, so
-  a host refuses an output it does not know rather than guessing.
+text: Everything derive, summarise, derive_repo and compare return carries schemaVersion
+  (1 for one graph, 2 for a repository), and a change to its shape that a reader
+  of the old shape would misread raises it, so a host refuses an output it does not
+  know rather than guessing.
 normative: true
 links:
 - target: INT-0001
